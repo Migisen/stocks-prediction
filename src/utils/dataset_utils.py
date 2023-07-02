@@ -1,6 +1,11 @@
 import pathlib
 import pandas as pd
 
+from darts import TimeSeries
+from darts.utils.missing_values import fill_missing_values
+
+import numpy as np
+
 class DatasetError(Exception):
     ...
 
@@ -27,6 +32,28 @@ class DatasetUtils:
         daily_df = DatasetUtils.create_datetime(daily_df, self.date_col_name, self.time_col_name, replace_zeros=False)
         daily_df.index = daily_df.index.normalize()
         return daily_df
+    
+    def create_daily_dart_timeseries(self, dataset_path: pathlib.Path, fill_missing: bool = True, 
+                                     remove_structural: bool = False, structural_date: str = '2022-03-1',
+                                     crush_start_date: str = '2022-02-18', target_col_name: str = '<CLOSE>'):
+        dart_timeseries = TimeSeries.from_dataframe(self.get_daily_df(dataset_path)[[target_col_name]], fill_missing_dates=True, freq='D')
+        if fill_missing:
+            dart_timeseries = fill_missing_values(dart_timeseries)
+        if remove_structural:
+            first_half = dart_timeseries[:pd.to_datetime(structural_date)]
+            second_half = dart_timeseries[pd.to_datetime(structural_date):]
+            first_half = first_half - (np.mean(first_half.values()) - np.mean(second_half.values()))
+            dart_timeseries = first_half[:pd.to_datetime(crush_start_date)].concatenate(second_half, ignore_time_axis=True)
+            dart_timeseries = fill_missing_values(dart_timeseries)
+        return dart_timeseries
+    
+    @staticmethod
+    def get_train_val_test_split(timeseries: TimeSeries, test_size: float, val_size: float):
+        train_val_series, test_series = timeseries.split_before(1 - test_size)
+        train_series, val_series = train_val_series.split_before(1 - val_size)
+        return train_series, val_series, test_series
+
+
     
     @staticmethod
     def get_daily_volume(daily_df: pd.DataFrame, date_col_name: str, vol_col_name: str) -> pd.DataFrame:

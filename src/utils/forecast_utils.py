@@ -17,6 +17,7 @@ class ForecastUtils:
             yield df.iloc[idx:idx + x_periods], df.iloc[idx + x_periods:idx + x_periods + y_periods]
 
 
+
 if __name__ == "__main__":
     test_df = pd.DataFrame({'dates': pd.date_range('2012-10-01', periods=9, freq='1D'), 'values': np.random.random(9)})
     print(test_df)
