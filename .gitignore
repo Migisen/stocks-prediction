@@ -162,5 +162,5 @@ cython_debug/
 test.py
 test.ipynb
 *.csv
-.DS_Stor
+.DS_Store
 .idea
